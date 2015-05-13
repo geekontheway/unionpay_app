@@ -1,55 +1,92 @@
+# Alipay
 
-该gem是一个银联手机控件支付接口
-=====
+A unofficial unionpay ruby gem.
 
-Installation
-------
+Unionpay official document: https://open.unionpay.com/upload/download/Product_interface_specification10779924.pdf .
 
-######Add this line to your application's Gemfile:
+## Installation
+
+Add this line to your application's Gemfile:
+
 ```ruby
+
 gem 'unionpay_app', '~> 0.9.0'
+
 ```
-######or development version
-```ruby
+
+And then execute:
+
+```console
+
 $ bundle
-```
-######Usage
 
-Config
-------
-```ruby
-UnionpayApp.front_url = Settings.union.frontUrl
-UnionpayApp.back_url = Settings.union.backUrl
-UnionpayApp.mer_id = Settings.union.merId
-UnionpayApp.uri = Settings.union.uri
-UnionpayApp.query_uri = Settings.union.query_uri
-UnionpayApp.private_key = Settings.union.private_key
-UnionpayApp.cer = Settings.union.cer
-UnionpayApp.cert_id = Settings.union.certId
-```
-Generate payment url for web
-------
-
-* 1. 银联签名 返回hash {time: "交易时间", sign: "post给银联的hash"}
-```ruby
-UnionpayApp::Service.sign txtAmt, orderId 
-#如下使用
-options = UnionpayApp::Service.sign("100", "20150415122801272")
 ```
 
-* 2. 发送给银联post请求 换取tn值
+## Configuration
+
 ```ruby
-UnionpayApp::Service.post UnionpayApp::Service.sign(txtAmt, orderId)
-#如下使用 会返回tn值
-UnionpayApp::Service.post(options)
+
+UnionpayApp.front_url = "前台回调地址"
+UnionpayApp.back_url = "后台回调地址"
+UnionpayApp.mer_id = "商户编号"
+UnionpayApp.uri = "订单交易地址"
+UnionpayApp.query_uri = "订单查询地址"
+UnionpayApp.private_key = "私钥证书内容"
+UnionpayApp.cer = "公钥证书内容"
+UnionpayApp.cert_id = "公钥证书序列号"
+
 ```
-* 3.银联验签：当请求银联获取tn后，或者请求银联查询交易后，或者当交易完成后，银联通过backUrl、frontUrl返回你结果时要进行验签
+
+## Service
+
+### 获取银联交易流水号 TN 
+
+#### Name
+
 ```ruby
-  UnionpayApp::Service.verify options
-``` 
-* 4. 查询交易是否成功 传入参数order_id
-```ruby
-UnionpayApp::Service.query order_id, UnionpayApp::Service.sign(txtAmt, orderId)[:time] 
-# 不要再做一次签名 取之前的options
-UnionpayApp::Service.query "20150415122801272", options[:time]
+
+get_tn
+
 ```
+
+#### Definition
+```ruby
+
+UnionpayApp::Service.get_tn signature
+
+```
+
+### 银联支付验签
+
+#### Name
+
+```ruby
+
+verify
+
+```
+
+#### Definition
+```ruby
+
+UnionpayApp::Service.verify params
+
+```
+
+### 银联交易查询
+
+#### Name
+
+```ruby
+
+query
+
+```
+
+#### Definition
+```ruby
+
+UnionpayApp::Service.query order_id [, txnTime]
+
+```
+

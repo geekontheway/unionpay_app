@@ -31,7 +31,7 @@ module UnionpayApp
       {time: union_params[:txnTime], sign: union_params.merge(signature: sign)}
     end
 
-    def self.post union_params
+    def self.get_tn union_params
     	request = Typhoeus::Request.new(UnionpayApp.uri, method: :post, params: union_params[:sign], ssl_verifypeer: false, headers: {'Content-Type' =>'application/x-www-form-urlencoded'} )
       request.run
       if request.response.success?
