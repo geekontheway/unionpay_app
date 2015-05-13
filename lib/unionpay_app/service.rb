@@ -6,7 +6,7 @@ require 'typhoeus'
 
 module UnionpayApp
   module Service
-    #银联支付签名
+    # 银联支付签名
     def self.sign txtAmt, orderId
       union_params = {
         :version => "5.0.0",
@@ -20,9 +20,9 @@ module UnionpayApp
         :backUrl    => UnionpayApp.back_url,
         :accessType => "0",
         :merId      => UnionpayApp.mer_id,
-        :orderId => orderId,  #商户订单号
+        :orderId => orderId,                            #商户订单号
         :txnTime => Time.now.strftime("%Y%m%d%H%M%S"),  #订单发送时间
-        :txnAmt  => txtAmt, #以分为单位
+        :txnAmt  => txtAmt,                             #以分为单位
         :currencyCode => '156',
         :signMethod => '01',
       }
@@ -41,42 +41,46 @@ module UnionpayApp
       end
     end
 
-    #银联支付验签
+    # 银联支付验签
+    # 报文的验签处理机制如下：
+    # 首先，对报文中出现签名域（signature）之外的所有数据元采用key=value的形式按照名称排序，然后以&作为连接符拼接成待签名串。
+    # 其次，对待签名串使用SHA-1算法做摘要，并转成16进制，再使用商户入网时银联提供的银联全渠道系统支付通讯RSA公钥证书对摘要和报文中
+    # 的签名信息做签名验证操作。
+    # RSA 算法非对称，不可以比对签名
+
     def self.verify params
-    	if get_public_key_by_cert_id params['certId']
-        public_key = get_public_key_by_cert_id params['certId']
-        signature_str = params['signature']
-        p = params.reject{|k, v| k == "signature"}.sort.map{|key, value| "#{key}=#{value}" }.join('&')
-        signature = Base64.decode64(signature_str)
-        data = Digest::SHA1.hexdigest(p)
-        key = OpenSSL::PKey::RSA.new public_key
-        digest = OpenSSL::Digest::SHA1.new
-        key.verify digest, signature, data
-    	else
-        false
-    	end
+      public_key = get_public_key_by_cert_id params['certId']
+      return false unless public_key
+
+      signature_str = params['signature']
+      p = params.reject{|k, v| k == "signature"}.sort.map{|key, value| "#{key}=#{value}" }.join('&')
+      signature = Base64.decode64(signature_str)
+      data = Digest::SHA1.hexdigest(p)
+      key = OpenSSL::PKey::RSA.new public_key
+      digest = OpenSSL::Digest::SHA1.new
+      key.verify digest, signature, data
     end
 
     # 银联支付 根据证书id返回公钥
     def self.get_public_key_by_cert_id cert_id
-    	certificate = OpenSSL::X509::Certificate.new(UnionpayApp.cer) #读取cer文件
-    	certificate.serial.to_s == cert_id ? certificate.public_key.to_s : nil #php 返回的直接是cer文件 UnionpayApp.cer
+    	certificate = OpenSSL::X509::Certificate.new(UnionpayApp.cer) 
+    	certificate.serial.to_s == cert_id ? certificate.public_key.to_s : nil
     end
 
     def self.query order_id, txnTime
     	union_params = {
-        :version => '5.0.0',		#版本号
-        :encoding => 'utf-8',		#编码方式
-        :certId => UnionpayApp.cert_id,	#证书ID	
-        :signMethod => '01',		#签名方法
-        :txnType => '00',		#交易类型	
-        :txnSubType => '00',		#交易子类
-        :bizType => '000000',		#业务类型
-        :accessType => '0',		#接入类型
-        :channelType => '07',		#渠道类型
-        :orderId => order_id,	#请修改被查询的交易的订单号
-        :merId => UnionpayApp.mer_id,	#商户代码，请修改为自己的商户号
-        :txnTime => txnTime,	#请修改被查询的交易的订单发送时间
+        :version => '5.0.0',		                          #版本号
+        :encoding => 'utf-8',		                          #编码方式
+        :certId => UnionpayApp.cert_id,	                  #证书ID	
+        :signMethod => '01',		                          #签名方法
+        :txnType => '00',		                              #交易类型	
+        :txnSubType => '00',		                          #交易子类
+        :bizType => '000000',		                          #业务类型
+        :accessType => '0',		                            #接入类型
+        :channelType => '07',		                          #渠道类型
+        :orderId => order_id,	                            #查询的交易的订单号
+        :merId => UnionpayApp.mer_id,	                    #商户代码
+        :txnTime => txnTime,	                            #订单发送时间
     	}
     	data = Digest::SHA1.hexdigest(union_params.sort.map{|key, value| "#{key}=#{value}" }.join('&'))
       sign = Base64.encode64(OpenSSL::PKey::RSA.new(UnionpayApp.private_key).sign('sha1', data.force_encoding("utf-8"))).gsub("\n", "")
