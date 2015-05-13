@@ -50,7 +50,7 @@ module UnionpayApp
         signature = Base64.decode64(signature_str)
         data = Digest::SHA1.hexdigest(p)
         key = OpenSSL::PKey::RSA.new public_key
-        digest = OpenSSL::Digest::SHA256.new
+        digest = OpenSSL::Digest::SHA1.new
         key.verify digest, signature, data
     	else
         false
